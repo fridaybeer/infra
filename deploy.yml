@@ -1,0 +1,77 @@
+version: '3.3'
+services:
+
+  super-trader:
+    hostname: super-trader
+    image: danielcoman/toolbox
+    deploy:
+      replicas: 1
+    # command: ["start"]
+    volumes:
+      - models:/models
+    ports:
+      - 443
+    environment:
+      TRADER: super
+    networks:
+      - internal
+    depends_on:
+      - exchange
+      - internal
+
+  trader:
+    image: danielcoman/toolbox
+    deploy:
+      replicas: 10
+    # command: ["start"]
+    depends_on:
+      - master
+    environment:
+      TRADER: basic
+    networks:
+      - internal
+    depends_on:
+      - exchange
+      - internal
+
+  exchange:
+    image: danielcoman/toolbox
+    deploy:
+      replicas: 1
+    environment:
+      CONTROL: test
+    networks:
+      - internal
+    depends_on:
+      - internal
+      - backend
+
+  backend:
+    image: postgres:11.3
+    deploy:
+      replicas: 1
+    volumes:
+      - postgresq:/var/lib/postgresql/data
+    environment:
+    restart: always
+    environment:
+      POSTGRES_USER: exchange
+      POSTGRES_PASSWORD: exchange
+    ports:
+      - 5432
+    networks:
+      - internal
+    depends_on:
+      - internal
+
+volumes:
+  models:
+  postgresq:
+
+networks:
+  internal:
+    driver: overlay
+    attachable: true
+    ipam:
+      config:
+        - subnet: 172.1.1.0/24
